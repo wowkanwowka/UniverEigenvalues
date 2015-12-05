@@ -138,55 +138,30 @@ struct Matrix Matrix_multiplication(struct Matrix x, struct Matrix y){
     return s;
 }
 
-struct Matrix multiply_by_spin_matrix_left(struct Matrix const * const x, double cos, double sin, int i, int j){
-    struct Matrix s;
-    int k, l;
-    s.elements = (double *) calloc(x->num_of_strings * x->num_of_columns, sizeof(double));
-    s.num_of_columns = x->num_of_columns;
-    s.num_of_strings = x->num_of_strings;
-    for(k = 0; k < x->num_of_strings; k++){
-        for(l = 0; l < x->num_of_strings; l++){
-            if((k != i) && (k != j)){
-                s.elements[k * s.num_of_columns + l] = x->elements[k * x->num_of_columns + l];
-            }
-            else if(k == i){
-                s.elements[k * s.num_of_columns + l] = cos * x->elements[i * x->num_of_columns + l] - sin * x->elements[j * x->num_of_columns + l];
-            }
-            else{
-                s.elements[k * s.num_of_columns + l] = sin * x->elements[i * x->num_of_columns + l] + cos * x->elements[j * x->num_of_columns + l];
-            }
-        }
+void multiply_by_spin_matrix_left(struct Matrix const * const x, double cos, double sin, int i, int j){
+    int l;
+    double tmp_vector_1, tmp_vector_2;
+    for(l = 0; l < x->num_of_strings; l++){
+        tmp_vector_1 = cos * x->elements[i * x->num_of_columns + l] - sin * x->elements[j * x->num_of_columns + l];
+        tmp_vector_2 = sin * x->elements[i * x->num_of_columns + l] + cos * x->elements[j * x->num_of_columns + l];
+        x->elements[i * x->num_of_columns + l] = tmp_vector_1;
+        x->elements[j * x->num_of_columns + l] = tmp_vector_2;
     }
-    return s;
 }
 
-struct Matrix multiply_by_spin_matrix_right(struct Matrix const * const x, double cos, double sin, int i, int j){
-    struct Matrix s;
-    int k, l;
-    s.elements = (double *) calloc(x->num_of_strings * x->num_of_columns, sizeof(double));
-    s.num_of_columns = x->num_of_columns;
-    s.num_of_strings = x->num_of_strings;
+void multiply_by_spin_matrix_right(struct Matrix const * const x, double cos, double sin, int i, int j){
+    int k;
+    double tmp_vector_1, tmp_vector_2;
     for(k = 0; k < x->num_of_strings; k++){
-        for(l = 0; l < x->num_of_strings; l++){
-            if((l != i) && (l != j)){
-                s.elements[k * s.num_of_columns + l] = x->elements[k * x->num_of_columns + l];
-            }
-            else if(l == i){
-                s.elements[k * s.num_of_columns + l] = cos * x->elements[k * x->num_of_columns + i] + sin * x->elements[k * x->num_of_columns + j];
-            }
-            else{
-                s.elements[k * s.num_of_columns + l] = -sin * x->elements[k * x->num_of_columns + i] + cos * x->elements[k * x->num_of_columns + j];
-            }
-        }
+        tmp_vector_1 = cos * x->elements[k * x->num_of_columns + i] + sin * x->elements[k * x->num_of_columns + j];
+        tmp_vector_2 = -sin * x->elements[k * x->num_of_columns + i] + cos * x->elements[k * x->num_of_columns + j];
+        x->elements[k * x->num_of_columns + i] = tmp_vector_1;
+        x->elements[k * x->num_of_columns + j] = tmp_vector_2;
     }
-    return s;
 }
 
 void cut_last_column_and_last_string(struct Matrix *x){
     int i, j;
-    //res.elements = (double *) calloc(x->num_of_columns * x->num_of_strings - x->num_of_strings - x->num_of_columns + 1, sizeof(double));
-    //res.num_of_columns = x->num_of_columns - 1;
-    //res.num_of_strings = x->num_of_strings - 1;
     for (i = 0; i < x->num_of_strings - 1; i++){
         for(j = 0; j < x->num_of_columns - 1; j++){
             x->elements[i * (x->num_of_columns - 1) + j] = x->elements[i * x->num_of_columns + j];
@@ -194,10 +169,6 @@ void cut_last_column_and_last_string(struct Matrix *x){
     }
     x->num_of_strings--;
     x->num_of_columns--;
-    /*free(x->elements);
-    x->num_of_columns = res.num_of_columns;
-    x->num_of_strings = res.num_of_strings;
-    x->elements = res.elements*/
 }
 
 void transfer_of_I_type(unsigned int i, unsigned int j, double k,struct Matrix *x){
@@ -403,12 +374,8 @@ struct Matrix QR_decomposition(struct Matrix *x){
                 cos = x->elements[i * x->num_of_columns + i] / tmp;
                 
                 sin = -x->elements[j * x->num_of_columns + i] / tmp;
-                TMP = multiply_by_spin_matrix_left(&Q, cos, sin, i, j);
-                free(Q.elements);
-                Q = TMP;
-                TMP = multiply_by_spin_matrix_left(x, cos, sin, i, j);
-                free(x->elements);
-                *x = TMP;
+                multiply_by_spin_matrix_left(&Q, cos, sin, i, j);
+                multiply_by_spin_matrix_left(x, cos, sin, i, j);
                 //printf("%lf %lf\n", cos, sin);
             }
             
@@ -496,9 +463,9 @@ struct Matrix Multiply_by_number(struct Matrix* const x, double k){
 
 
 struct Matrix almost_triangle_form(struct Matrix *x){
-    //printf("making triangle formed\n");
     struct Matrix Q;
-    int i, j, k;
+    int i, j, k, counter;
+    counter = 0;
     double tmp, cos, sin;
     //Matrix_print(x);
     /*Q.num_of_columns = x->num_of_columns;
@@ -514,14 +481,12 @@ struct Matrix almost_triangle_form(struct Matrix *x){
                 cos = x->elements[i * x->num_of_columns + i - 1] / tmp;
                 sin = -x->elements[j * x->num_of_columns + i - 1] / tmp;
                     if((fabs(sin) > EPS)){
-                        printf("step: %d %d\n", i, j);
-                        Q = multiply_by_spin_matrix_left(x, cos, sin, i, j);
-                        free(x->elements);
-                        *x = Q;
+                        //printf("step: %d %d\n", i, j);
+                        //printf("spin_mult %d\n", counter++);
+                        multiply_by_spin_matrix_left(x, cos, sin, i, j);
                         //Q = multiply_by_spin_matrix_left(&Q, cos, sin, i, j);
-                        Q = multiply_by_spin_matrix_right(x, cos, -sin, i, j);
-                        free(x->elements);
-                        *x = Q;
+                        //printf("spin_mult %d\n", counter++);
+                        multiply_by_spin_matrix_right(x, cos, -sin, i, j);
                     }
             }
         }
@@ -573,7 +538,7 @@ void QR_algorithm(struct Matrix * const x, double* eigenvalues){
             }
         }
         almost_triangle_form(&A);
-        Matrix_print(A);
+        //Matrix_print(A);
         for(i = 0; i < x->num_of_columns - 2; i++){
             flag = true;
             while(flag){
