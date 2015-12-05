@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <string.h>
 
-#define EPS 6e-8
+#define EPS 6e-12
 
 struct Matrix{
     double *elements;
@@ -25,9 +25,18 @@ void Matrix_print(struct Matrix x);//prints Matrix
 
 struct Matrix Matrix_multiplication(struct Matrix x, struct Matrix y);//multiplies two Matrix
 
-struct Matrix multiply_by_spin_matrix_left(struct Matrix const * const x, double cos, double sin, int i, int j);
+double trace(struct Matrix * x){
+    int i;
+    double trace = 0.0;
+    for(i = 0; i < x->num_of_strings; i++){
+        trace += x->elements[i * x->num_of_columns + i];
+    }
+    return trace;
+}
 
-struct Matrix multiply_by_spin_matrix_right(struct Matrix const * const x, double cos, double sin, int i, int j);
+void multiply_by_spin_matrix_left(struct Matrix const * const x, double cos, double sin, int i, int j);
+
+void multiply_by_spin_matrix_right(struct Matrix const * const x, double cos, double sin, int i, int j);
 
 void cut_last_column_and_last_string(struct Matrix *x);
 
