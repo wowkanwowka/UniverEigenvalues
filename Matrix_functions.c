@@ -1,7 +1,7 @@
 #include "Matrix.h"
 
 void Matrix_scan(struct Matrix *x){
-    unsigned int m, n, i, j;
+     int m, n, i, j;
     printf("Enter the size of matrix:");
     scanf("%d %d", &n, &m);
     while((n <= 0)|| (m <= 0)){
@@ -21,7 +21,7 @@ void Matrix_scan(struct Matrix *x){
 }
 
 bool Matrix_file_scan(struct Matrix *x, const char* filename){
-    unsigned int i, j;
+     int i, j;
     int m, n;
     FILE* in = fopen(filename, "r");
     if(in == NULL){
@@ -81,8 +81,8 @@ void formula_initialization(struct Matrix *x){
     }
 }
 void Matrix_print(struct Matrix x){
-    unsigned int i = 0;
-    unsigned int j = 0;
+     int i = 0;
+     int j = 0;
     for (i = 0; i < x.num_of_strings; i++){
         for(j = 0; j < x.num_of_columns; j++){
             if(fabs(x.elements[i * x.num_of_columns +j]) < EPS){
@@ -138,6 +138,39 @@ struct Matrix Matrix_multiplication(struct Matrix x, struct Matrix y){
     return s;
 }
 
+struct Matrix R_Matrix_multiplication_left(struct Matrix x, struct Matrix y){
+    struct Matrix s;
+    int i, j, k;
+    double l;
+    if(x.num_of_columns != y.num_of_strings){
+        printf("Error: Multiplication cannot be performed!");
+        return x;
+    }
+    s.elements = (double*) malloc(sizeof(double) * x.num_of_strings * y.num_of_columns);
+    s.num_of_strings = x.num_of_strings;
+    s.num_of_columns = y.num_of_columns;
+    for(i = 0; i < s.num_of_strings; i++){
+        for(j = 0; j < s.num_of_columns; j++){
+            l = 0;
+            for(k = i; k < y.num_of_strings; k++){
+                l += x.elements[i * x.num_of_columns + k] * y.elements[k * y.num_of_columns + j];
+            }
+            s.elements[i * s.num_of_columns + j] = l;
+        }
+    }
+    return s;
+}
+
+
+double trace(struct Matrix* x){
+    int i;
+    double trace = 0.0;
+    for(i = 0; i < x->num_of_strings; i++){
+        trace += x->elements[i * x->num_of_columns + i];
+    }
+    return trace;
+}
+
 void multiply_by_spin_matrix_left(struct Matrix const * const x, double cos, double sin, int i, int j){
     int l;
     double tmp_vector_1, tmp_vector_2;
@@ -171,16 +204,16 @@ void cut_last_column_and_last_string(struct Matrix *x){
     x->num_of_columns--;
 }
 
-void transfer_of_I_type(unsigned int i, unsigned int j, double k,struct Matrix *x){
-    unsigned int l;
+void transfer_of_I_type( int i,  int j, double k,struct Matrix *x){
+     int l;
     for(l=0 ; l < x->num_of_columns ; l++){
         x->elements[i * x->num_of_columns + l] -= k * x->elements[j * x->num_of_columns + l];
     }
 }
 
-void transfer_of_II_type(unsigned int i,unsigned int j,struct Matrix *x){
+void transfer_of_II_type( int i, int j,struct Matrix *x){
     double temp;
-    unsigned int l;
+     int l;
     for(l=0; l < x->num_of_columns; l++){
         temp = x->elements[i * x->num_of_columns + l];
         x->elements[i * x->num_of_columns + l] = x->elements[j * x->num_of_columns + l];
@@ -188,15 +221,15 @@ void transfer_of_II_type(unsigned int i,unsigned int j,struct Matrix *x){
     }
 }
 
-void transfer_of_III_type(unsigned int i, double k,struct Matrix *x){
-    unsigned int l;
+void transfer_of_III_type( int i, double k,struct Matrix *x){
+     int l;
     for(l=0; l<x->num_of_columns; l++){
         x->elements[i * x->num_of_columns + l] *= k;
     }
 }
-void column_transfer_of_II_type(unsigned int i, unsigned int j, struct Matrix *x){
+void column_transfer_of_II_type( int i,  int j, struct Matrix *x){
     double temp;
-    unsigned int l;
+     int l;
     for(l=0; l < x->num_of_strings; l++){
         temp = x->elements[l * x->num_of_columns + i];
         x->elements[l * x->num_of_columns + i] = x->elements[l * x->num_of_columns + j];
@@ -206,7 +239,7 @@ void column_transfer_of_II_type(unsigned int i, unsigned int j, struct Matrix *x
 
 int* Gauss_style(int *hmtt2, struct Matrix *x){
     *hmtt2=0;
-    unsigned int i, j, k, col_num_1, l, counter = 0;
+     int i, j, k, col_num_1, l, counter = 0;
     double max;
     int *permutations = (int *) calloc(2 * x->num_of_strings, sizeof(int));
     bool truth=true;
@@ -317,7 +350,7 @@ struct Matrix Inverse_Matrix(struct Matrix x){
 }
 
 double Matrix_norm_1(struct Matrix x){
-    unsigned int i,j;
+     int i,j;
     double norm = 0.0;
     for(i = 0; i < x.num_of_strings; i++){
         for(j = 0; j < x.num_of_columns; j++){
@@ -328,18 +361,18 @@ double Matrix_norm_1(struct Matrix x){
 }
 
 double Matrix_norm_2(struct Matrix x){
-    unsigned int i,j;
+     int i,j;
     double norm = 0.0;
     for(i = 0; i < x.num_of_strings; i++){
         for(j = 0; j < x.num_of_columns; j++){
             norm += x.elements[i * x.num_of_columns + j] * x.elements[i * x.num_of_columns + j];
         }
     }
-    return sqrt(norm);
+    return norm;
 }
 
 double Matrix_norm_3(struct Matrix x){
-    unsigned int i,j;
+     int i,j;
     double norm = 0.0;
     for(i = 0; i < x.num_of_strings; i++){
         for(j = 0; j < x.num_of_columns; j++){
@@ -559,38 +592,42 @@ void QR_algorithm(struct Matrix * const x, double* eigenvalues){
                 if(flag){
                     //printf("new iteration step:%d\n", i);
                     if(counter > 2000){
-                        //printf("Too many iterations required");
-                        return ;
-                    }
-                    if(fabs(A.elements[A.num_of_strings * A.num_of_columns - 1]) < EPS){
-                        sdvig = A.elements[A.num_of_strings * A.num_of_columns - 2];
+                        printf("Too many iterations required, here's what we've got");
+                        printf("%lf\n", A.elements[A.num_of_strings * A.num_of_columns - 1]);
+                        eigenvalues[A.num_of_columns - 1] = A.elements[A.num_of_columns * A.num_of_strings - 1];
+                        flag = false;
                     }
                     else{
-                        sdvig = A.elements[A.num_of_strings * A.num_of_columns - 1];
-                    }
-                    //Matrix_print(A);
-                    for(k = 0; k < A.num_of_strings; k++){
-                        A.elements[k * A.num_of_columns + k] -= sdvig;
-                    }
-                    //Matrix_print(A);
-                    Q = QR_decomposition(&A);
-                    //Matrix_print(A);
-                    //Matrix_print(Q);
-                    /*for(i = 0; i < Q.num_of_strings; i++){
-                        for(j = 0; j < Q.num_of_columns; j++){
-                            Q1.elements[i * Q.num_of_columns + j] = Q.elements[j * Q.num_of_columns + i];
+                        if(fabs(A.elements[A.num_of_strings * A.num_of_columns - 1]) < EPS){
+                            sdvig = A.elements[A.num_of_strings * A.num_of_columns - 2];
                         }
-                    }*/
-                    TMP = Matrix_multiplication(A, Q);
-                    free(A.elements);
-                    A = TMP;
-                    for(k = 0; k < A.num_of_strings; k++){
-                        A.elements[k * A.num_of_columns + k] += sdvig;
+                        else{
+                            sdvig = A.elements[A.num_of_strings * A.num_of_columns - 1];
+                        }
+                        //Matrix_print(A);
+                        for(k = 0; k < A.num_of_strings; k++){
+                            A.elements[k * A.num_of_columns + k] -= sdvig;
+                        }
+                        //Matrix_print(A);
+                        Q = QR_decomposition(&A);
+                        //Matrix_print(A);
+                        //Matrix_print(Q);
+                        /*for(i = 0; i < Q.num_of_strings; i++){
+                            for(j = 0; j < Q.num_of_columns; j++){
+                                Q1.elements[i * Q.num_of_columns + j] = Q.elements[j * Q.num_of_columns + i];
+                            }
+                        }*/
+                        TMP = R_Matrix_multiplication_left(A, Q);
+                        free(A.elements);
+                        A = TMP;
+                        for(k = 0; k < A.num_of_strings; k++){
+                            A.elements[k * A.num_of_columns + k] += sdvig;
+                        }
+                        //Matrix_print(A);
+                        //Matrix_print(A);
+                        free(Q.elements);
+                        counter++;
                     }
-                    //Matrix_print(A);
-                    //Matrix_print(A);
-                    free(Q.elements);
-                    counter++;
                 }
             }
         }

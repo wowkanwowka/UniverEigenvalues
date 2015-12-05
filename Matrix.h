@@ -8,8 +8,8 @@
 
 struct Matrix{
     double *elements;
-    unsigned int num_of_strings;
-    unsigned int num_of_columns;
+     int num_of_strings;
+     int num_of_columns;
     
 };
 
@@ -25,14 +25,9 @@ void Matrix_print(struct Matrix x);//prints Matrix
 
 struct Matrix Matrix_multiplication(struct Matrix x, struct Matrix y);//multiplies two Matrix
 
-double trace(struct Matrix * x){
-    int i;
-    double trace = 0.0;
-    for(i = 0; i < x->num_of_strings; i++){
-        trace += x->elements[i * x->num_of_columns + i];
-    }
-    return trace;
-}
+struct Matrix R_Matrix_multiplication_left(struct Matrix x, struct Matrix y);
+
+double trace(struct Matrix * x);
 
 void multiply_by_spin_matrix_left(struct Matrix const * const x, double cos, double sin, int i, int j);
 
@@ -40,13 +35,13 @@ void multiply_by_spin_matrix_right(struct Matrix const * const x, double cos, do
 
 void cut_last_column_and_last_string(struct Matrix *x);
 
-void transfer_of_I_type(unsigned int i, unsigned int j, double k, struct Matrix *x);//subtracts j-string multiplied by k from i-string
+void transfer_of_I_type( int i,  int j, double k, struct Matrix *x);//subtracts j-string multiplied by k from i-string
 
-void transfer_of_II_type(unsigned int i, unsigned int j, struct Matrix *x);//exchanges i and j strings
+void transfer_of_II_type( int i,  int j, struct Matrix *x);//exchanges i and j strings
 
-void column_transfer_of_II_type(unsigned int i, unsigned int j, struct Matrix *x);//exchanges i and j columns
+void column_transfer_of_II_type( int i,  int j, struct Matrix *x);//exchanges i and j columns
 
-void transfer_of_III_type(unsigned int i, double k, struct Matrix *x);//multiplies i string by k
+void transfer_of_III_type( int i, double k, struct Matrix *x);//multiplies i string by k
 
 int* Gauss_style(int *k, struct Matrix *x);//makes Matrix Gauss styled
 
