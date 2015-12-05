@@ -595,6 +595,7 @@ void QR_algorithm(struct Matrix * const x, double* eigenvalues){
                         printf("Too many iterations required, here's what we've got");
                         printf("%lf\n", A.elements[A.num_of_strings * A.num_of_columns - 1]);
                         eigenvalues[A.num_of_columns - 1] = A.elements[A.num_of_columns * A.num_of_strings - 1];
+                        cut_last_column_and_last_string(&A);
                         flag = false;
                     }
                     else{
