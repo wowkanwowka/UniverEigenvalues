@@ -1,9 +1,10 @@
 #include "Matrix.h"
 
 int main(int argc, char** argv){
-    struct Matrix M;
+    struct Matrix M, M1, s;
     M.elements = NULL;
     int i;
+    time_t time1, time2;
     double m_trace, sum_of_eigenvalues;
     if((argc == 2) && !((strcmp(argv[1], "screen") != 0) && ((strcmp(argv[1], "Screen") != 0)))){
         Matrix_scan(&M);
@@ -25,34 +26,26 @@ int main(int argc, char** argv){
         printf("Incorrect input, please enter arguments as follows:\n1) 'screen' (or 'Screen') for input from screen\n2) 'file' (or 'File') filename for input from file with name 'filename'\n3) 'formula' (or 'Formula') for formula initialization\n");
         return 0;
     }
-    m_trace = 0.0;
-    m_trace = trace(&M);
+    printf("Enter number of threads: ");
+    scanf("%d", &i);
+    time(&time1);
+    s = Inverse_Matrix_parallel(M, i);
+    time(&time2);
     
-    double * eigenvalues = (double *) calloc(M.num_of_columns * M.num_of_strings, sizeof(double));
-    QR_algorithm(&M, eigenvalues);
-    printf("%lf\n%lf\n", eigenvalues[1], eigenvalues[0]);
-    sum_of_eigenvalues = 0.0;
-    for(i = 0; i < M.num_of_columns; i++){
-        sum_of_eigenvalues += eigenvalues[i];
-    }
-    printf("nevyazka1: %lf\n", fabs(sum_of_eigenvalues - m_trace));
-    m_trace = Matrix_norm_2(M);
-    sum_of_eigenvalues = 0.0;
-    for(i = 0; i < M.num_of_columns; i++){
-        sum_of_eigenvalues += eigenvalues[i] * eigenvalues[i];
-    }
-    printf("nevyazka2: %lf\n", fabs(sum_of_eigenvalues - m_trace));
-        /*for (i = 0; i < M.num_of_columns; i++){
-            printf("%lf\n", eigenvalues[i]);
-        }*/
+    Matrix_print(s);
+    s = Matrix_multiplication(s, M);
+    for (i = 0; i < M.num_of_columns; i++){
+        s.elements[i * s.num_of_columns + i] -= 1.0;
+        }
     /*almost_triangle_form(&M);
     Matrix_print(M);
     QR_decomposition(&M);
     Matrix_print(M);*/
-    /*printf("Nevyazka1 = %g\n", Matrix_norm_1(s));
+    printf("parallel time is %f\n", difftime(time2, time1));
+    printf("Nevyazka1 = %g\n", Matrix_norm_1(s));
     printf("Nevyazka2 = %g\n", Matrix_norm_2(s));
-    printf("Nevyazka3 = %g\n", Matrix_norm_3(s));*/
-    //free(s.elements);
+    printf("Nevyazka3 = %g\n", Matrix_norm_3(s));
+    free(s.elements);
     free(M.elements);
     return 0;
 }

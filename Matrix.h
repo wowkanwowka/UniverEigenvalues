@@ -3,6 +3,8 @@
 #include <math.h>
 #include <stdbool.h>
 #include <string.h>
+#include <pthread.h>
+#include <time.h>
 
 #define EPS 6e-12
 
@@ -11,6 +13,11 @@ struct Matrix{
      int num_of_strings;
      int num_of_columns;
     
+};
+
+struct ARGS{
+    struct Matrix  matr;
+    int strnum, beginning, ending;
 };
 
 void Matrix_scan(struct Matrix *x);//scans Matrix from standart input stream
@@ -39,15 +46,21 @@ void transfer_of_I_type( int i,  int j, double k, struct Matrix *x);//subtracts 
 
 void transfer_of_II_type( int i,  int j, struct Matrix *x);//exchanges i and j strings
 
+void transfer_of_I_type_parallel(void * ARGS);
+
 void column_transfer_of_II_type( int i,  int j, struct Matrix *x);//exchanges i and j columns
 
 void transfer_of_III_type( int i, double k, struct Matrix *x);//multiplies i string by k
 
 int* Gauss_style(int *k, struct Matrix *x);//makes Matrix Gauss styled
 
+int* Gauss_style_parallel(int *k, struct Matrix*x, int num_of_threads);
+
 double Determinant(struct Matrix x);//returns determinant
 
 struct Matrix Inverse_Matrix(struct Matrix x);//returns Inverse Matrix
+
+struct Matrix Inverse_Matrix_parallel(struct Matrix x, int num_of_threads);
 
 struct Matrix Transpose(struct Matrix *x);//returns transpose of Matrix
 

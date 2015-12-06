@@ -204,14 +204,14 @@ void cut_last_column_and_last_string(struct Matrix *x){
     x->num_of_columns--;
 }
 
-void transfer_of_I_type( int i,  int j, double k,struct Matrix *x){
+void transfer_of_I_type( int i,  int j, double k, struct Matrix *x){
      int l;
     for(l=0 ; l < x->num_of_columns ; l++){
         x->elements[i * x->num_of_columns + l] -= k * x->elements[j * x->num_of_columns + l];
     }
 }
 
-void transfer_of_II_type( int i, int j,struct Matrix *x){
+void transfer_of_II_type( int i, int j, struct Matrix *x){
     double temp;
      int l;
     for(l=0; l < x->num_of_columns; l++){
@@ -221,7 +221,20 @@ void transfer_of_II_type( int i, int j,struct Matrix *x){
     }
 }
 
-void transfer_of_III_type( int i, double k,struct Matrix *x){
+void transfer_of_I_type_parallel(void * argument){
+    struct ARGS *  args = (struct ARGS*) argument;
+    int i;
+    //Matrix_print(args->matr);
+    //printf("new thread %d %d %d\n", args->beginning, args->ending, args->strnum);
+    for(i = args->beginning; i < args->ending; i++){
+        if(fabs(args->matr.elements[args->strnum * args->matr.num_of_columns + args->strnum]) > EPS){
+            transfer_of_I_type(i, args->strnum, (args->matr.elements[i * args->matr.num_of_columns + args->strnum] / args->matr.elements[args->strnum * args->matr.num_of_columns + args->strnum]), &args->matr);
+        }
+    }
+    pthread_exit(NULL);
+}
+
+void transfer_of_III_type( int i, double k, struct Matrix *x){
      int l;
     for(l=0; l<x->num_of_columns; l++){
         x->elements[i * x->num_of_columns + l] *= k;
@@ -238,11 +251,12 @@ void column_transfer_of_II_type( int i,  int j, struct Matrix *x){
 }
 
 int* Gauss_style(int *hmtt2, struct Matrix *x){
-    *hmtt2=0;
+    
      int i, j, k, col_num_1, l, counter = 0;
     double max;
     int *permutations = (int *) calloc(2 * x->num_of_strings, sizeof(int));
     bool truth=true;
+    *hmtt2=0;
     k = 0;
     for(i = 0; (i < x->num_of_columns) && (k < x->num_of_strings); i++){
         j = k;
@@ -292,8 +306,94 @@ int* Gauss_style(int *hmtt2, struct Matrix *x){
     return permutations;
 }
 
+int* Gauss_style_parallel(int *hmtt2, struct Matrix *x, int num_of_threads){
+    pthread_t* threads;
+    struct ARGS* threads_arguments;
+    int i, j, k, col_num_1, l, counter = 0;
+    double max;
+    int *permutations = (int *) calloc(2 * x->num_of_strings, sizeof(int));
+    bool truth=true;
+    //printf("numoftreads is %d\n", num_of_threads);
+    threads = (pthread_t *) malloc(sizeof(pthread_t) * num_of_threads);
+    threads_arguments = (struct ARGS*) malloc(sizeof(struct ARGS) * num_of_threads);
+    *hmtt2=0;
+    k = 0;
+    for(i = 0; (i < x->num_of_columns) && (k < x->num_of_strings); i++){
+        j = k;
+        truth = true;
+        max = fabs(x->elements[j * x->num_of_columns + j]);
+        col_num_1 = j;
+        for (l = j; l < x->num_of_strings; l++){
+            if (max < fabs(x->elements[j * x->num_of_columns + l])){
+                col_num_1 = l;
+                max = fabs(x->elements[j * x->num_of_columns + l]);
+            }
+        }
+        if(!(j == col_num_1)){
+            column_transfer_of_II_type(j, col_num_1, x);
+            permutations[2 * counter] = j + 1;
+            permutations[2 * counter + 1] = col_num_1 + 1;
+            counter++;
+        }
+        if(!(fabs(x->elements[j * x->num_of_columns + i]) < EPS)){
+            truth = false;
+        }
+        while(truth){
+            j++;
+            if(!(j < x->num_of_strings)){
+                truth=false;
+            }
+            else{
+                if(!(fabs(x->elements[j * x->num_of_columns + i]) < EPS)){
+                    truth=false;
+                }
+            }
+        }
+        if((j < x->num_of_strings)){
+            if(j > k){
+                transfer_of_II_type(k, j, x);
+                (*hmtt2)++;
+            }
+            j++;
+            if((x->num_of_strings - j) / num_of_threads > 0){
+                for(l = 0; l < num_of_threads; l++){
+                    //printf("thread number %d\n", l);
+                    threads_arguments[l].matr = *x;
+                    threads_arguments[l].strnum = k;
+                    threads_arguments[l].beginning = j + l * ((x->num_of_strings - j) / num_of_threads);
+                    if(l < num_of_threads - 1){
+                        threads_arguments[l].ending = j + (l + 1) * ((x->num_of_strings - j) / num_of_threads);
+                    }
+                    else{
+                        threads_arguments[l].ending = x->num_of_strings;
+                    }
+                    pthread_create(&threads[l], NULL, transfer_of_I_type_parallel,  threads_arguments + l);
+                    
+                    
+                }
+                for(l = 0; l < num_of_threads; l++){
+                    pthread_join(threads[l], NULL);
+                }
+                
+            }
+            else{
+                for(; j < x->num_of_strings; j++){
+                    if(fabs(x->elements[j * x->num_of_columns + i]) > EPS){
+                        transfer_of_I_type(j, k, (x->elements[j * x->num_of_columns + i] / x->elements[k * x->num_of_columns + i]), x);
+                    }
+                }
+            }
+            k++;
+        }
+    }
+    free(threads);
+    free(threads_arguments);
+    return permutations;
+}
+
+
 struct Matrix Inverse_Matrix(struct Matrix x){
-    
+
     if(!(x.num_of_strings == x.num_of_columns)){
         printf("!!!SO STUPID!!!");
     }
@@ -348,6 +448,96 @@ struct Matrix Inverse_Matrix(struct Matrix x){
     }
     return x;
 }
+
+struct Matrix Inverse_Matrix_parallel(struct Matrix x, int num_of_threads){
+    pthread_t* threads;
+    int l;
+    struct Matrix s;
+    int i, j, k = 0;
+    struct ARGS* threads_arguments;
+    //printf("numoftreads is %d\n", num_of_threads);
+    threads = (pthread_t *) malloc(sizeof(pthread_t) * num_of_threads);
+    threads_arguments = (struct ARGS*) malloc(sizeof(struct ARGS) * num_of_threads);
+
+    if(!(x.num_of_strings == x.num_of_columns)){
+        printf("!!!SO STUPID!!!");
+    }
+    else{
+        
+        s.elements = (double*) malloc(sizeof(double) * 2 * x.num_of_strings * x.num_of_columns);
+        s.num_of_strings = x.num_of_strings;
+        s.num_of_columns = 2 * x.num_of_columns;
+        for(i = 0; i < x.num_of_strings; i++){
+            for(j=0; j < x.num_of_columns; j++){
+                s.elements[i * 2 * x.num_of_columns + j] = x.elements[i * x.num_of_columns + j];
+            }
+            s.elements[i * s.num_of_columns + x.num_of_columns + i] = 1.0;
+        }
+        int* transfers = Gauss_style_parallel(&k, &s, num_of_threads);
+        for(i = 0; i < x.num_of_strings; i++){
+            if (fabs(s.elements[i * s.num_of_columns + i]) < EPS){
+                printf("%d %lf", i, s.elements[i * s.num_of_columns + i]);
+                free(s.elements);
+                printf("Error matrix is degenerate argument will be returned\n");
+                return x;
+            }
+        }
+        transfer_of_III_type(x.num_of_strings - 1, 1.0 / (s.elements[(x.num_of_strings-1) * s.num_of_columns + x.num_of_strings - 1]), &s);
+        for(i = x.num_of_strings - 1; i > -1; i--){
+            if((i + 1) / num_of_threads > 0){
+                for(l = 0; l < num_of_threads; l++){
+                    //printf("thread number %d\n", l);
+                    threads_arguments[l].matr = s;
+                    threads_arguments[l].strnum = i;
+                    threads_arguments[l].beginning =  l * ((i + 1) / num_of_threads);
+                    if(l < num_of_threads - 1){
+                        threads_arguments[l].ending = (l + 1) * ((i + 1) / num_of_threads);
+                    }
+                    else{
+                        threads_arguments[l].ending = i;
+                    }
+                    pthread_create(&threads[l], NULL, transfer_of_I_type_parallel,  threads_arguments + l);
+                    
+                    
+                }
+                for(l = 0; l < num_of_threads; l++){
+                    pthread_join(threads[l], NULL);
+                }
+                
+            }
+            else{
+                for(j = i - 1; j > -1; j--){
+                    if(fabs(s.elements[j * s.num_of_columns + i]) > 0){
+                        transfer_of_I_type(j, i, s.elements[j * s.num_of_columns + i] / s.elements[i * s.num_of_columns + i], &s);
+                    }
+                }
+            }
+        }
+        free(threads_arguments);
+        free(threads);
+        for(i = 0; i < x.num_of_strings - 1; i++){
+            transfer_of_III_type(i, 1.0 / (s.elements[i * s.num_of_columns + i]), &s);
+        }
+        for(i = 0; (i < x.num_of_strings) && (transfers[2 * i] > 0); i++){
+        }
+        for(i -= 1; (i >= 0) && (transfers[2 * i] > 0); i--){
+            transfer_of_II_type(transfers[2 * i] - 1, transfers[2 * i + 1] - 1, &s);
+        }
+        struct Matrix w;
+        w.elements = (double*) malloc(sizeof(double) * x.num_of_strings * x.num_of_columns);
+        w.num_of_columns = x.num_of_columns;
+        w.num_of_strings = x.num_of_strings;
+        for(i = 0; i < x.num_of_strings; i++){
+            for(j = 0; j < x.num_of_strings; j++){
+                w.elements[i * w.num_of_columns + j] = s.elements[i * s.num_of_columns + x.num_of_strings + j];
+            }
+        }
+        free(s.elements);
+        return w;
+    }
+    return x;
+}
+
 
 double Matrix_norm_1(struct Matrix x){
      int i,j;
